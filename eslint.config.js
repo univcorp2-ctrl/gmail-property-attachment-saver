@@ -3,23 +3,11 @@ import js from '@eslint/js';
 export default [
   js.configs.recommended,
   {
-    ignores: ['dist/**', '.clasp.json'],
+    ignores: ['dist/**', '.clasp.json', 'src/**', 'appsscript.json'],
+    files: ['lib/**/*.js', 'tests/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        GmailApp: 'readonly',
-        DriveApp: 'readonly',
-        PropertiesService: 'readonly',
-        ScriptApp: 'readonly',
-        Utilities: 'readonly',
-        MimeType: 'readonly',
-        SpreadsheetApp: 'readonly',
-        Drive: 'readonly'
-      }
-    },
-    rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+      sourceType: 'module'
     }
   }
 ];
