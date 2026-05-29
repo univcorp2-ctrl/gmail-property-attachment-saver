@@ -1,0 +1,1 @@
+{"name":"gmail-property-attachment-saver","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test","lint":"eslint .","clasp:login":"clasp login","clasp:create":"clasp create --type standalone --title gmail-property-attachment-saver","clasp:push":"clasp push"},"devDependencies":{"@google/clasp":"^2.5.0","eslint":"^9.15.0","@eslint/js":"^9.15.0"}}
