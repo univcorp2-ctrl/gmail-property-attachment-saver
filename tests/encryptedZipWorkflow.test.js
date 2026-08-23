@@ -7,6 +7,7 @@ import {
   propertyTokens,
   scoreDriveFolder,
   selectDriveFolder,
+  evaluateRuntimeReadiness,
   buildExecutionContract
 } from '../lib/encryptedZipWorkflow.js';
 
@@ -40,12 +41,49 @@ test('selectDriveFolder refuses ambiguous ties above threshold', () => {
   assert.equal(result.ambiguous, true);
 });
 
-test('execution contract requires verification gates and memory-only password policy', () => {
+test('runtime readiness blocks when no executable path exists', () => {
+  const readiness = evaluateRuntimeReadiness({
+    gmailZipBytesReadable: false,
+    passwordMailReadable: true,
+    gasDeployed: false,
+    gasAuthorized: false,
+    localZipPresent: false,
+    extractorAvailable: false,
+    windowsExecutorReachable: false,
+    bridgeAuthAvailable: false,
+    driveWritable: true
+  });
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.allowedStatus, 'blocked');
+  assert.ok(readiness.blockers.includes('ZIP_BYTES_ROUTE_UNAVAILABLE'));
+  assert.ok(readiness.blockers.includes('EXTRACTOR_NOT_AVAILABLE'));
+});
+
+test('runtime readiness accepts GAS plus Windows executor route', () => {
+  const readiness = evaluateRuntimeReadiness({
+    gmailZipBytesReadable: false,
+    passwordMailReadable: false,
+    gasDeployed: true,
+    gasAuthorized: true,
+    localZipPresent: false,
+    extractorAvailable: true,
+    windowsExecutorReachable: true,
+    bridgeAuthAvailable: true,
+    driveWritable: true
+  });
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.selectedRoute, 'gas_windows');
+  assert.equal(readiness.allowedStatus, 'running');
+});
+
+test('execution contract requires runtime preflight and verification gates', () => {
   const contract = buildExecutionContract({
     gmailMessageId: '1a02c3bce8b37823',
     zipFilename: '国立市谷保ＰＪ賃料査定書_2026-08-23_1028.zip'
   });
   assert.equal(contract.password_policy, 'memory_only_never_log');
+  assert.equal(contract.runtime_policy, 'preflight_before_implementation_or_success_claim');
+  assert.equal(contract.completion_gate[0], 'runtime_preflight_passed');
   assert.ok(contract.completion_gate.includes('drive_relisted_and_verified'));
   assert.ok(contract.completion_gate.includes('share_links_returned'));
 });
