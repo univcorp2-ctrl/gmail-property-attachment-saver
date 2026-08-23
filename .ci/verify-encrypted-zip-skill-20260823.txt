@@ -1,0 +1,1 @@
+CI verification marker for encrypted ZIP reusable skill, rerun after lint fix.
