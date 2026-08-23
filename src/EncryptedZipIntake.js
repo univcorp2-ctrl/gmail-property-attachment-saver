@@ -8,6 +8,71 @@ const ENCRYPTED_ZIP_SETTINGS = {
   timezone: 'Asia/Tokyo'
 };
 
+function verifyEncryptedZipIntakeRuntimeReadiness() {
+  const props = PropertiesService.getScriptProperties();
+  const blockers = [];
+  const rootId = props.getProperty('DAIWA_ROOT_FOLDER_ID') || props.getProperty('TARGET_DRIVE_FOLDER_ID');
+  let root = null;
+
+  if (!rootId) {
+    blockers.push('DRIVE_ROOT_NOT_CONFIGURED');
+  } else {
+    try {
+      root = DriveApp.getFolderById(rootId);
+      root.getName();
+    } catch (error) {
+      blockers.push('DRIVE_ROOT_NOT_ACCESSIBLE');
+    }
+  }
+
+  try {
+    GmailApp.search('newer_than:1d', 0, 1);
+  } catch (error) {
+    blockers.push('GMAIL_NOT_AUTHORIZED');
+  }
+
+  const triggerExists = ScriptApp.getProjectTriggers().some(
+    trigger => trigger.getHandlerFunction() === 'runEncryptedZipIntakeJob'
+  );
+  if (!triggerExists) blockers.push('INTAKE_TRIGGER_MISSING');
+
+  let fallbackFolderId = null;
+  if (root) {
+    const folders = root.getFoldersByName(ENCRYPTED_ZIP_SETTINGS.fallbackFolderName);
+    if (folders.hasNext()) {
+      fallbackFolderId = folders.next().getId();
+    } else {
+      blockers.push('FALLBACK_FOLDER_MISSING');
+    }
+  }
+
+  return {
+    ok: blockers.length === 0,
+    ready: blockers.length === 0,
+    blockers,
+    rootFolderId: root ? root.getId() : null,
+    fallbackFolderId,
+    triggerExists,
+    checkedAt: new Date().toISOString()
+  };
+}
+
+function repairEncryptedZipIntakeRuntime() {
+  const props = PropertiesService.getScriptProperties();
+  const rootId = props.getProperty('DAIWA_ROOT_FOLDER_ID') || props.getProperty('TARGET_DRIVE_FOLDER_ID');
+  if (!rootId) throw new Error('DAIWA_ROOT_FOLDER_ID or TARGET_DRIVE_FOLDER_ID is required before repair');
+
+  const root = DriveApp.getFolderById(rootId);
+  getOrCreateChildFolder_(root, ENCRYPTED_ZIP_SETTINGS.fallbackFolderName);
+  setupEncryptedZipIntakeTrigger();
+
+  const readiness = verifyEncryptedZipIntakeRuntimeReadiness();
+  if (!readiness.ready) {
+    throw new Error(`Encrypted ZIP intake runtime is still blocked: ${readiness.blockers.join(',')}`);
+  }
+  return readiness;
+}
+
 function runEncryptedZipIntakeJob() {
   const props = PropertiesService.getScriptProperties();
   const rootId = props.getProperty('DAIWA_ROOT_FOLDER_ID') || props.getProperty('TARGET_DRIVE_FOLDER_ID');
