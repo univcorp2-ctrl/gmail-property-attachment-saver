@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://univcorp2.example/schemas/gmail-encrypted-zip-to-drive-job-v1.json",
+  "title": "Gmail encrypted ZIP to Drive job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mode", "request_id", "zip_filename"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "mode": {"enum": ["diagnose", "process"]},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "gmail_message_id": {"type": ["string", "null"]},
+    "gmail_message_url": {"type": ["string", "null"], "format": "uri"},
+    "sender": {"type": ["string", "null"]},
+    "zip_filename": {"type": "string", "pattern": "(?i)\\.zip$"},
+    "destination_folder_id": {"type": ["string", "null"]},
+    "destination_root_folder_id": {"type": ["string", "null"]},
+    "property_label": {"type": ["string", "null"]},
+    "preserve_original_zip": {"type": "boolean", "default": true}
+  },
+  "allOf": [
+    {
+      "not": {
+        "anyOf": [
+          {"required": ["password"]},
+          {"required": ["zip_password"]},
+          {"required": ["archive_password"]}
+        ]
+      }
+    }
+  ]
+}
