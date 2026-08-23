@@ -1,0 +1,59 @@
+name: Windows property attachment diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.ops/windows-property-diagnostic.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check bridge secret availability
+        id: secret
+        shell: bash
+        env:
+          GPT_ACTION_API_KEY: ${{ secrets.GPT_ACTION_API_KEY }}
+        run: |
+          if [[ -z "$GPT_ACTION_API_KEY" ]]; then
+            echo 'bridge_secret_available=false'
+            exit 2
+          fi
+          echo 'bridge_secret_available=true'
+      - name: Run bounded non-secret Windows diagnostic
+        if: success()
+        shell: bash
+        env:
+          GPT_ACTION_API_KEY: ${{ secrets.GPT_ACTION_API_KEY }}
+        run: |
+          set -euo pipefail
+          base_url='https://custom-gpt-chat-first-bridge.univcorp2.workers.dev'
+          ps='$ErrorActionPreference="SilentlyContinue"; $homeDir="C:\Users\t0015"; $o=[ordered]@{computer=$env:COMPUTERNAME;has_7z=[bool](Get-Command 7z.exe -ErrorAction SilentlyContinue);has_python=[bool](Get-Command python.exe -ErrorAction SilentlyContinue);has_clasp=[bool](Get-Command clasp.cmd -ErrorAction SilentlyContinue);has_gcloud=[bool](Get-Command gcloud.cmd -ErrorAction SilentlyContinue);has_clasp_auth=(Test-Path (Join-Path $homeDir ".clasprc.json"));has_drivefs=(Test-Path (Join-Path $homeDir "AppData\Local\Google\DriveFS"));has_chrome_profile=(Test-Path (Join-Path $homeDir "AppData\Local\Google\Chrome\User Data"));has_edge_profile=(Test-Path (Join-Path $homeDir "AppData\Local\Microsoft\Edge\User Data"));has_target_zip=[bool](Get-ChildItem -Path (Join-Path $homeDir "Downloads") -Filter "国立市谷保ＰＪ賃料査定書_2026-08-23_1028.zip" -File -ErrorAction SilentlyContinue)}; $o|ConvertTo-Json -Compress'
+          body=$(jq -n --arg ps "$ps" '{executable:"powershell.exe",argv:["-NoProfile","-Command",$ps],cwd:"C:\\Users\\t0015",timeout_ms:90000,max_output_bytes:12000,env_names:["SystemRoot","TEMP","TMP"],workspace_mode:"direct"}')
+          response=$(curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $GPT_ACTION_API_KEY" \
+            -H 'X-Target-Agent-ID: windows-agent-chatgpt-hidden' \
+            -H 'Content-Type: application/json' \
+            -H "Idempotency-Key: windows-property-diagnostic-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --data "$body" "$base_url/v1/commands/run")
+          job_id=$(jq -er '.job.id' <<<"$response")
+          final="$response"
+          state=$(jq -r '.job.state' <<<"$response")
+          for _ in $(seq 1 60); do
+            [[ "$state" == succeeded || "$state" == failed || "$state" == expired ]] && break
+            sleep 2
+            final=$(curl --fail --silent --show-error -H "Authorization: Bearer $GPT_ACTION_API_KEY" "$base_url/v1/jobs/$job_id")
+            state=$(jq -r '.job.state' <<<"$final")
+          done
+          echo "bridge_job_state=$state"
+          jq -r '.job.result.stdout // .job.result.result.stdout // ""' <<<"$final"
+          exit_code=$(jq -r '.job.result.exit_code // .job.result.result.exit_code // 1' <<<"$final")
+          test "$state" = succeeded
+          test "$exit_code" = 0
