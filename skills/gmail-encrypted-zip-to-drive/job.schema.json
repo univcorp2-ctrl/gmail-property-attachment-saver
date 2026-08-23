@@ -12,7 +12,7 @@
     "gmail_message_id": {"type": ["string", "null"]},
     "gmail_message_url": {"type": ["string", "null"], "format": "uri"},
     "sender": {"type": ["string", "null"]},
-    "zip_filename": {"type": "string", "pattern": "(?i)\\.zip$"},
+    "zip_filename": {"type": "string", "pattern": "\\.[zZ][iI][pP]$"},
     "destination_folder_id": {"type": ["string", "null"]},
     "destination_root_folder_id": {"type": ["string", "null"]},
     "property_label": {"type": ["string", "null"]},
