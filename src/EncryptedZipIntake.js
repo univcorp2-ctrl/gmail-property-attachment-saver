@@ -74,6 +74,8 @@ function repairEncryptedZipIntakeRuntime() {
 }
 
 function runEncryptedZipIntakeJob() {
+  repairEncryptedZipIntakeRuntime();
+
   const props = PropertiesService.getScriptProperties();
   const rootId = props.getProperty('DAIWA_ROOT_FOLDER_ID') || props.getProperty('TARGET_DRIVE_FOLDER_ID');
   if (!rootId) throw new Error('DAIWA_ROOT_FOLDER_ID or TARGET_DRIVE_FOLDER_ID is required');
