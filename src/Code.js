@@ -15,7 +15,11 @@ const ANALYSIS_RULES = {
 };
 
 function runAllJobs() {
-  return { saveResult: runGmailAttachmentSaveJob(), analysisResult: runPropertyAnalysisJob() };
+  return {
+    saveResult: runGmailAttachmentSaveJob(),
+    analysisResult: runPropertyAnalysisJob(),
+    suginamiGrantWatchResult: runSuginamiGrantMailWatchJob()
+  };
 }
 
 function runGmailAttachmentSaveJob() {
