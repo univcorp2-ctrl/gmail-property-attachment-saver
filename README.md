@@ -89,3 +89,17 @@ sqlite3 property_analysis.db "select rank, property_name, total_score, annual_ca
 ## 注意
 
 初期版は、メール本文・ファイル名・TXT化済み本文からの抽出を優先します。PDF本文の高精度OCRは次段階でDrive OCR、Cloud Vision API、外部LLM API連携を追加できます。スコアは一次スクリーニング用であり、融資判断・売却価格・税務判断は専門家確認が必要です。
+
+
+## 杉並区助成金メール監視
+
+`runAllJobs` の1時間トリガーで、杉並区産業振興センターから届くデジタル化推進事業助成金の新着メールを確認し、同じGmailアカウントへ通知メールを送ります。ChatGPTの自動化枠は使用しません。
+
+- 監視開始日: 2026-09-08以降
+- 既定の送信元: `CHUSHO-K@city.suginami.lg.jp`
+- 重複防止: 処理済みGmail message IDをScript Propertiesに最大200件保存
+- 通知先: 実行ユーザー。変更する場合は `SUGINAMI_GRANT_NOTIFY_TO`
+- 停止: Script Property `SUGINAMI_GRANT_WATCH_ENABLED=false`
+- 検索条件変更: `SUGINAMI_GRANT_SEARCH_QUERY`
+
+初回はGASエディタで `runSuginamiGrantMailWatchJob` を手動実行し、Gmail権限を承認して結果が `ok: true` になることを確認してください。既存の `setupInitialTriggers` が有効なら、その後は `runAllJobs` から1時間ごとに実行されます。
